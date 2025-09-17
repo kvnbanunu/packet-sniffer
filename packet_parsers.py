@@ -98,8 +98,11 @@ def parse_ipv4_header(hex_data):
 
     match protocol:
         case 1: #icmp
+            print(protocol)
         case 6: #tcp
+            print(protocol)
         case 17: #udp
+            print(protocol)
         case _:
             print(f"  {'Unsupported Protocol:':<25} {protocol}")
 
