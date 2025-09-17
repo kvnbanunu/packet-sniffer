@@ -12,21 +12,22 @@ def parse_ethernet_header(hex_data):
     payload = hex_data[28:]
 
     # Route payload based on EtherType
-    if ether_type == "0806":  # ARP
-        parse_arp_header(payload)
-    elif ether_type == "0800": # ipv4
-        parse_ipv4_header(payload)
-    elif ether_type == "86dd": # ipv6
-        print(ether_type)
-    elif ether_type == "8808": # ethernet flow control
-        print(ether_type)
-    elif ether_type == "8809": # ethernet slow protocol (LACP)
-        print(ether_type)
-    elif ether_type == "88cc": # Link Layer Discovery Protocol (LLDP)
-        print(ether_type)
-    else:
-        print(f"  {'Unknown EtherType:':<25} {ether_type:<20} | {int(ether_type, 16)}")
-        print("  No parser available for this EtherType.")
+    match ether_type:
+        case "0806":    #arp
+            parse_arp_header(payload)
+        case "0800":    #ipv4
+            parse_ipv4_header(payload)
+        case "86dd":    #ipv6
+            print("Not implemented: ipv6")
+        case "8808":    #ethernet flow control
+            print("Not implemented: ethernet flow control")
+        case "8809":    #ethernet slow protocol
+            print("Not implemented: ethernet slow protocol")
+        case "88cc":    #link layer discovery protocol (LLDP)
+            print("Not implemented: LLDP")
+        case _:
+            print(f"  {'Unknown EtherType:':<25} {ether_type:<20} | {int(ether_type, 16)}")
+            print("  No parser available for this EtherType.")
 
     return ether_type, payload
 
@@ -94,6 +95,13 @@ def parse_ipv4_header(hex_data):
     print(f"  {'Checksum:':<25} {hex_data[20:24]:<20} | {checksum}")
     print(f"  {'Source IP:':<25} {hex_data[24:32]:<20} | {source_ip}")
     print(f"  {'Destination IP:':<25} {hex_data[32:40]:<20} | {dest_ip}")
+
+    match protocol:
+        case 1: #icmp
+        case 6: #tcp
+        case 17: #udp
+        case _:
+            print(f"  {'Unsupported Protocol:':<25} {protocol}")
 
 # Parse ARP header
 def parse_arp_header(hex_data):
