@@ -83,13 +83,88 @@ def parse_ipv4_header(hex_data):
 
     match protocol:
         case 1: #icmp
-            print(protocol)
+            parse_icmp_header(hex_data[40:])
         case 6: #tcp
             print(protocol)
         case 17: #udp
             print(protocol)
         case _:
             print(f"  {'Unsupported Protocol:':<25} {protocol}")
+
+def parse_icmp_header(hex_data):
+    type_val = int(hex_data[:2], 16)
+    code_val = int(hex_data[2:4], 16)
+    checksum = int(hex_data[4:8], 16)
+    extended = hex_data[8:16]   #used to point out any issues in IP message
+    info = {
+        1: {
+            "t": "Echo reply",
+            "c": ["Echo reply"]
+        },
+        3: {
+            "t": "Destination unreachable",
+            "c": ["Destination network unreachable",
+                  "Destination host unreachable",
+                  "Destination protocol unreachable",
+                  "Destination port unreachable",
+                  "Fragmentation is needed and the DF flag set",
+                  "Source route failed"]
+        },
+        5: {
+            "t": "Redirect message",
+            "c": ["Redirect the datagram for the network",
+                  "Redirect datagram for the host",
+                  "Redirect the datagram for the Type of Service and Network",
+                  "Redirect datagram for the Service and Host"]
+        },
+        8: {
+            "t": "Echo request",
+            "c": ["Echo request"]
+        },
+        9: {
+            "t": "Router advertisement",
+            "c": ["User to discover the addresses of operational routers"]
+        },
+        10: {
+            "t": "Router solicitation",
+            "c": ["User to discover the addresses of operational routers"]
+        },
+        11: {
+            "t": "Time exceeded",
+            "c": ["Time to live exceeded in transit",
+                  "Fragment reassembly time exceeded"]
+        },
+        12: {
+            "t": "Parameter problem",
+            "c": ["The pointer indicated an error",
+                  "Missing required option",
+                  "Bad length"]
+        },
+        13: {
+            "t": "Timestamp",
+            "c": ["Used for time synchronization"]
+        },
+        14: {
+            "t": "Timestamp reply",
+            "c": ["Reply to Timestamp message"]
+        }
+    }
+
+    print(f"ICMP Header:")
+    print(f"  {'Type:':<25} {hex_data[:2]:<20} | {type_val} ({info[type_val]['t']})")
+    print(f"  {'Code:':<25} {hex_data[2:4]:<20} | {code_val} ({info[type_val]['c'][code_val]})")
+    print(f"  {'Checksum:':<25} {hex_data[4:8]:<20} | {checksum}")
+    if int(extended, 16) == 0:
+        print(f"  {'Unused:':<25} {extended:<20} | {bin(int(extended, 16))}")
+    else:
+        print(f"  {'Extended Header:':<25} {extended:<20} | {int(extended, 16)}")
+    print(f"  {'Payload (hex):':<25} {hex_data[16:]}")
+
+def parse_tcp_header(hex_data):
+    return
+
+def parse_udp_header(hex_data):
+    return
 
 # helper func for ipv4 header flags
 def print_flags(data):
