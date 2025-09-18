@@ -61,7 +61,7 @@ def parse_ipv4_header(hex_data):
     diff_services = hex_data[2:4] # call print_diff_services
     total_len = int(hex_data[4:8], 16)
     identification = int(hex_data[8:12], 16)
-    flags = hex_data[12:16] # call print_flags
+    flags = hex_data[12:16] # call print_ipv4_flags
     ttl = int(hex_data[16:18], 16)
     protocol = int(hex_data[18:20], 16)
     checksum = int(hex_data[20:24], 16)
@@ -74,7 +74,7 @@ def parse_ipv4_header(hex_data):
     print_diff_services(diff_services)
     print(f"  {'Total Length:':<25} {hex_data[4:8]:<20} | {total_len}")
     print(f"  {'Identification:':<25} {hex_data[8:12]:<20} | {identification}")
-    print_flags(flags)
+    print_ipv4_flags(flags)
     print(f"  {'Time to Live:':<25} {hex_data[16:18]:<20} | {ttl} hops")
     print(f"  {'Protocol:':<25} {hex_data[18:20]:<20} | {protocol}")
     print(f"  {'Checksum:':<25} {hex_data[20:24]:<20} | {checksum}")
@@ -167,7 +167,7 @@ def parse_udp_header(hex_data):
     return
 
 # helper func for ipv4 header flags
-def print_flags(data):
+def print_ipv4_flags(data):
     as_bin = f"{int(data, 16):0{16}b}" # keep leading zeros
     labels = ["Reserved:", "DF (Do not Fragment):", "MF (More Fragments):"]
 
