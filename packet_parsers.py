@@ -31,43 +31,28 @@ def parse_ethernet_header(hex_data):
 
     return ether_type, payload
 
-def conv_mac_addr(data):
-    return ':'.join(data[i:i+2] for i in range(0, 12, 2))
+# Parse ARP header
+def parse_arp_header(hex_data):
+    hardware_type = int(hex_data[:4], 16)
+    protocol_type = int(hex_data[4:8], 16)
+    hardware_size = int(hex_data[8:10], 16)
+    protocol_size = int(hex_data[10:12], 16)
+    operation = int(hex_data[12:16], 16)
+    sender_mac = conv_mac_addr(hex_data[16:28])
+    sender_ip = conv_ipv4_addr(hex_data[28:36])
+    target_mac = conv_mac_addr(hex_data[36:48])
+    target_ip = conv_ipv4_addr(hex_data[48:56])
 
-def conv_ipv4_addr(data):
-    res = f"{int(data[:2], 16)}"
-    for i in range(2, 8, 2):
-        res += f".{int(data[i:i+2], 16)}"
-    return res
-
-def conv_ipv6_addr(data):
-    res = f"{int(data[:4], 16)}"
-    for i in range(4, 32, 2):
-        temp = int(data[i:i+2], 16)
-        if temp == 0:
-            continue
-        res += f"::{temp}"
-    return res
-
-# helper func for ipv4 header flags
-def print_flags(data):
-    as_bin = f"{int(data, 16):0{16}b}" # keep leading zeros
-    labels = ["Reserved:", "DF (Do not Fragment):", "MF (More Fragments):"]
-
-    print(f"  {'Flags & Frag Offset:':<25} {data:<20} | 0b{as_bin}")
-    for i in range(3):
-        print(f"    {labels[i]:<25} {as_bin[i]}")
-    print(f"    {'Fragment Offset:':<25} {hex(int(as_bin[3:], 2))} | {int(as_bin[3:], 2)}")
-
-# helper func for ipv4 header differential services
-def print_diff_services(data):
-    as_bin = f"{int(data, 16):0{8}b}" # keep leading zeros
-    codepoint = as_bin[:6] # first 6 digits
-    congestion = as_bin[6:] # last 2 digits
-
-    print(f"  {'Differentiated Services:':<25} {data:<20} | 0b{as_bin}")
-    print(f"    {'Differentiated Services Codepoint:':<25} 0b{codepoint} | {int(codepoint, 2)}")
-    print(f"    {'Explicit Congestion Notification:':<25} 0b{congestion} | {int(congestion, 2)}")
+    print(f"ARP Header:")
+    print(f"  {'Hardware Type:':<25} {hex_data[:4]:<20} | {hardware_type}")
+    print(f"  {'Protocol Type:':<25} {hex_data[4:8]:<20} | {protocol_type}")
+    print(f"  {'Hardware Size:':<25} {hex_data[8:10]:<20} | {hardware_size}")
+    print(f"  {'Protocol Size:':<25} {hex_data[10:12]:<20} | {protocol_size}")
+    print(f"  {'Operation:':<25} {hex_data[12:16]:<20} | {operation}")
+    print(f"  {'Sender MAC:':<25} {hex_data[16:28]:<20} | {sender_mac}")
+    print(f"  {'Sender IP:':<25} {hex_data[28:36]:<20} | {sender_ip}")
+    print(f"  {'Target MAC:':<25} {hex_data[36:48]:<20} | {target_mac}")
+    print(f"  {'Target IP:':<25} {hex_data[48:56]:<20} | {target_ip}")
 
 # Parse IPv4 header
 def parse_ipv4_header(hex_data):
@@ -106,25 +91,62 @@ def parse_ipv4_header(hex_data):
         case _:
             print(f"  {'Unsupported Protocol:':<25} {protocol}")
 
-# Parse ARP header
-def parse_arp_header(hex_data):
-    hardware_type = int(hex_data[:4], 16)
-    protocol_type = int(hex_data[4:8], 16)
-    hardware_size = int(hex_data[8:10], 16)
-    protocol_size = int(hex_data[10:12], 16)
-    operation = int(hex_data[12:16], 16)
-    sender_mac = conv_mac_addr(hex_data[16:28])
-    sender_ip = conv_ipv4_addr(hex_data[28:36])
-    target_mac = conv_mac_addr(hex_data[36:48])
-    target_ip = conv_ipv4_addr(hex_data[48:56])
+# helper func for ipv4 header flags
+def print_flags(data):
+    as_bin = f"{int(data, 16):0{16}b}" # keep leading zeros
+    labels = ["Reserved:", "DF (Do not Fragment):", "MF (More Fragments):"]
 
-    print(f"ARP Header:")
-    print(f"  {'Hardware Type:':<25} {hex_data[:4]:<20} | {hardware_type}")
-    print(f"  {'Protocol Type:':<25} {hex_data[4:8]:<20} | {protocol_type}")
-    print(f"  {'Hardware Size:':<25} {hex_data[8:10]:<20} | {hardware_size}")
-    print(f"  {'Protocol Size:':<25} {hex_data[10:12]:<20} | {protocol_size}")
-    print(f"  {'Operation:':<25} {hex_data[12:16]:<20} | {operation}")
-    print(f"  {'Sender MAC:':<25} {hex_data[16:28]:<20} | {sender_mac}")
-    print(f"  {'Sender IP:':<25} {hex_data[28:36]:<20} | {sender_ip}")
-    print(f"  {'Target MAC:':<25} {hex_data[36:48]:<20} | {target_mac}")
-    print(f"  {'Target IP:':<25} {hex_data[48:56]:<20} | {target_ip}")
+    print(f"  {'Flags & Frag Offset:':<25} {data:<20} | 0b{as_bin}")
+    for i in range(3):
+        print(f"    {labels[i]:<25} {as_bin[i]}")
+    print(f"    {'Fragment Offset:':<25} {hex(int(as_bin[3:], 2))} | {int(as_bin[3:], 2)}")
+
+# helper func for ipv4 header differential services
+def print_diff_services(data):
+    as_bin = f"{int(data, 16):0{8}b}" # keep leading zeros
+    codepoint = as_bin[:6] # first 6 digits
+    congestion = as_bin[6:] # last 2 digits
+
+    print(f"  {'Differentiated Services:':<25} {data:<20} | 0b{as_bin}")
+    print(f"    {'Differentiated Services Codepoint:':<25} 0b{codepoint} | {int(codepoint, 2)}")
+    print(f"    {'Explicit Congestion Notification:':<25} 0b{congestion} | {int(congestion, 2)}")
+
+# convert hex string into mac address format
+def conv_mac_addr(data):
+    return ':'.join(data[i:i+2] for i in range(0, 12, 2))
+
+# convert hex string into ipv4 address format 0.0.0.0
+def conv_ipv4_addr(data):
+    res = f"{int(data[:2], 16)}"
+    for i in range(2, 8, 2):
+        res += f".{int(data[i:i+2], 16)}"
+    return res
+
+# convert hex string into ipv6 address format
+# ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+# remove any leading zeros in each segment
+# unless 0000 -> 0
+# segments with only zeros replaced with double colon ::
+# double colon can only be used once
+def conv_ipv6_addr(data):
+    res = data[:4].lstrip('0')  #strip leading zeros
+
+    double_colon = False #only set to true after returning to non 0 segment after 0 only segment
+    zero_flag = False   #true if last iteration was all 0s
+    for i in range(4, 32, 4):
+        temp = data[i:i+4]
+        if int(temp, 16) == 0:  #if all zeros
+            if double_colon == False:   #if first instance of ::
+                if zero_flag == True:
+                    continue    #skip adding more colons
+                zero_flag = True
+                res += "::"
+            else:
+                res += ":0"
+        else:
+            #check if previous segment was all 0s, then disable future ::
+            if double_colon == False and zero_flag == True:
+                double_colon = True
+            zero_flag = False
+            res += f":{temp.lstrip('0')}"
+    return res
