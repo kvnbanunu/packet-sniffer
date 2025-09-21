@@ -1,5 +1,5 @@
 RUN = sudo python3 main.py -i any -c 1 -f
-IP = 192.168.0.72
+IP = google.com
 
 arp:
 	$(RUN) arp
