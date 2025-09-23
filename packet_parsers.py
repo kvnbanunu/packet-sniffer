@@ -18,9 +18,7 @@ def parse_ethernet_header(hex_data):
         case "0800":    #ipv4
             parse_ipv4_header(payload)
         case "86dd":    #ipv6
-            print("Not implemented: ipv6")
-        case "8808":    #ethernet flow control
-            print("Not implemented: ethernet flow control")
+            parse_ipv6_header(payload)
         case _:
             print(f"  {'Unknown EtherType:':<25} {ether_type:<20} | {int(ether_type, 16)}")
             print("  No parser available for this EtherType.")
@@ -90,6 +88,126 @@ def parse_ipv4_header(hex_data):
             parse_udp_header(hex_data[40:])
         case _:
             print(f"  {'Unsupported Protocol:':<25} {protocol}")
+
+def parse_ipv6_header(hex_data):
+    version = hex_data[0]
+    traffic = hex_data[1:3]
+    flow_label = hex_data[3:8]
+    payload_len = hex_data[8:12]
+    next_header = hex_data[12:14]
+    hop_limit = hex_data[14:16]
+    source_ip = hex_data[16:48]
+    dest_ip = hex_data[48:80]
+    payload = hex_data[80:]
+
+    print("IPv6 Header:")
+    print_as_int(version, "Version:")
+    print_as_int(traffic, "Traffic Class:")
+    print_as_int(flow_label, "Flow Label:")
+    print_as_int(payload_len, "Payload Length:")
+    print_as_int(next_header, "Next Header:")
+    print_as_int(hop_limit, "Hop Limit:")
+    print_ipv6_addr(source_ip, "Source Address:")
+    print_ipv6_addr(dest_ip, "Destination Address:")
+
+    match int(next_header, 16):
+        case 0:
+            parse_ipv6_hop(payload)
+        case 6:
+            parse_tcp_header(payload)
+        case 17:
+            parse_udp_header(payload)
+        case 43:
+            parse_ipv6_routing(payload)
+        case 58:
+            parse_icmpv6_header(payload)
+        case _:
+            print(f"  {'Payload (hex):':<25} {payload}")
+
+def parse_ipv6_hop(data):
+    next_header = data[:2]
+    length = data[2:4]
+    limit = 16 + (int(length, 16) * 2) # length counts from after the 8th byte
+    options = data[4:limit]
+    payload = data[limit:]
+
+    print("IPv6 Hop-by-Hop Option Header:")
+    print_as_int(next_header, "Next Header:")
+    print_as_int(length, "Length:")
+    print(f"  {'Options/Padding:':<25} {options}")
+
+    match int(next_header, 16):
+        case 0:
+            parse_ipv6_hop(payload)
+        case 6:
+            parse_tcp_header(payload)
+        case 17:
+            parse_udp_header(payload)
+        case 43:
+            parse_ipv6_routing(payload)
+        case 58:
+            parse_icmpv6_header(payload)
+        case _:
+            print(f"  {'Payload (hex):':<25} {payload}")
+
+def parse_ipv6_routing(data):
+    next_header = data[:2]
+    length = data[2:4]
+    rtype = data[4:6]
+    seg_left = data[6:8]
+    limit = 16 + (int(length, 16) * 2) # length counts from after the 8th byte
+    options = data[8:limit]
+    payload = data[limit:]
+
+    print("IPv6 Routing Header:")
+    print_as_int(next_header, "Next Header:")
+    print_as_int(length, "Length:")
+    print_as_int(rtype, "Routing Type:")
+    print_as_int(seg_left, "Segments Left:")
+    print(f"  {'Options/Padding:':<25} {options}")
+
+    match int(next_header, 16):
+        case 0:
+            parse_ipv6_hop(payload)
+        case 6:
+            parse_tcp_header(payload)
+        case 17:
+            parse_udp_header(payload)
+        case 43:
+            parse_ipv6_routing(payload)
+        case 58:
+            parse_icmpv6_header(payload)
+        case _:
+            print(f"  {'Payload (hex):':<25} {payload}")
+
+def parse_icmpv6_header(data):
+    type_val = data[:2]
+    code_val = data[2:4]
+    checksum = data[4:8]
+    reserved = data[8:12]
+    num_records = data[12:16]
+    records = data[16:]
+
+    print("ICMPv6 Header:")
+    print_as_int(type_val, "Type:")
+    print_as_int(code_val, "Code:")
+    print_as_int(checksum, "Checksum:")
+    print_as_int(reserved, "Reserved:")
+    print_as_int(num_records, "Number of Multicast Records:")
+
+    for i in range(int(num_records, 16)):
+        record_type = records[:2]
+        aux_len = records[2:4]
+        num_sources = records[4:8]
+        addr = records[8:40]
+
+        print(f"  Record {i + 1}:")
+        print_as_int(record_type, "  Record Type:")
+        print_as_int(aux_len, "  Aux Data Len:")
+        print_as_int(num_sources, "  Number of Sources:")
+        print_ipv6_addr(addr, "  Multicast Address:")
+        records = records[40:]
+
 
 def parse_icmp_header(hex_data):
     type_val = int(hex_data[:2], 16)

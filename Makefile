@@ -13,6 +13,9 @@ tcp:
 icmp:
 	$(RUN) icmp
 
+icmpv6:
+	$(RUN) icmpv6
+
 dns:
 	$(RUN) dns
 
@@ -27,6 +30,9 @@ p-tcp:
 
 p-icmp:
 	ping -c 1 $(IP)
+
+p-ipv6:
+	ping ff02::1%wlan0
 
 p-dns:
 	nslookup $(IP) -retry=10
