@@ -87,7 +87,7 @@ def parse_ipv4_header(hex_data):
         case 6: #tcp
             parse_tcp_header(hex_data[40:])
         case 17: #udp
-            print(protocol)
+            parse_udp_header(hex_data[40:])
         case _:
             print(f"  {'Unsupported Protocol:':<25} {protocol}")
 
@@ -202,7 +202,11 @@ def parse_tcp_header(hex_data):
     print_as_int(checksum, "Checksum:")
     print_as_int(urgent, "Urgent Pointer:")
     print_as_int(options, "Options:")
-    print(f"  {'Payload (hex):':<25} {payload}")
+
+    if int(source_port, 16) == 53:
+        parse_dns_header(payload)
+    else:
+        print(f"  {'Payload (hex):':<25} {payload}")
 
 def parse_udp_header(hex_data):
     source_port = hex_data[:4]
@@ -216,7 +220,113 @@ def parse_udp_header(hex_data):
     print_as_int(dest_port, "Destination Port:")
     print_as_int(length, "Length:")
     print_as_int(checksum, "Checksum:")
-    print(f"  {'Payload (hex):':<25} {payload}")
+
+    if int(source_port, 16) == 53:
+        parse_dns_header(payload)
+    else:
+        print(f"  {'Payload (hex):':<25} {payload}")
+
+def parse_dns_header(hex_data):
+    trans_id = hex_data[:4]
+    flags = hex_data[4:8]
+    num_questions = hex_data[8:12]
+    num_answers = hex_data[12:16]
+    auth = hex_data[16:20]
+    additional = hex_data[20:24]
+    data = hex_data[24:]
+
+    print("DNS Header:")
+    print_as_int(trans_id, "Transaction ID:")
+    print_dns_flags(flags)
+    print_as_int(num_questions, "Questions:")
+    print_as_int(num_answers, "Answers:")
+    print_as_int(auth, "Authority RRs:")
+    print_as_int(additional, "Additional RRs:")
+
+    answers_index, qname = print_dns_questions(data)
+    answers_index += 24
+    if int(num_answers, 16) > 0:
+        print("  Answers:")
+        for i in range(int(num_answers, 16)):
+            data = hex_data[answers_index:]
+            answers_index += print_dns_answers(data, qname)
+
+# helper function to parse the dns question.
+# Returns index for answers and qname for reuse
+def print_dns_questions(data):
+    index = 0
+    labels = []
+
+    while data[index:index+2] != "00":
+        length = int(data[index:index+2], 16) * 2
+        index += 2
+        labels.append(bytes.fromhex(data[index:index+length]).decode('ascii'))
+        index += length
+
+    qname = ".".join(labels) # add '.' inbetween each label
+
+    index += 2 # move past '00'
+    qtype = data[index:index+4]
+    index += 4
+    qclass = data[index:index+4]
+    index += 4
+
+    print(f"  {'Queries:':<25} {data[:index]}")
+    print(f"    {'Name:':<10} {qname}")
+    print(f"    {'Type:':<10} {qtype} | {int(qtype, 16)}")
+    print(f"    {'Class:':<10} {qclass} | {int(qclass, 16)}")
+    
+    return index, qname
+
+def print_dns_answers(data, name):
+    atype = data[4:8]
+    aclass = data[8:12]
+    ttl = data[12:20]
+    dlen = data[20:24]
+    index = 24 + (int(dlen, 16) * 2)
+    adata = data[24:index]
+
+    print(f"    {'Name:':<15} {name:<8}")
+    print(f"    {'Type:':<15} {atype:<8} | {int(atype, 16)}")
+    print(f"    {'Class:':<15} {aclass:<8} | {int(aclass, 16)}")
+    print(f"    {'Time To Live:':<15} {ttl:<8} | {int(ttl, 16)} seconds")
+    print(f"    {'Data Length:':<15} {dlen} | {int(dlen, 16)} bytes")
+    print(f"    {'Data (hex):':<15} {adata}")
+
+    return index
+
+def print_dns_flags(data):
+    as_bin = f"{int(data, 16):0{16}b}" # keep leading 0s / 16 bits
+    res = as_bin[:1]
+    opcode = as_bin[1:5]
+    auth = as_bin[5:6]
+    trunc = as_bin[6:7]
+    rec_des = as_bin[7:8]
+    rec_avail = as_bin[8:9]
+    z = as_bin[9:10]
+    ans_auth = as_bin[10:11]
+    non_auth = as_bin[11:12]
+    reply = as_bin[12:16]
+
+    isResponse = int(res, 2) == 1
+
+    resStr = "Message is a Response" if isResponse else "Message is a Query"
+
+    print(f"  {'Flags:':<25} {data:<20} | 0b{as_bin}")
+    print(f"    {'Response:':<25} 0b{res:<4} | {int(res, 2)} ({resStr})")
+    print(f"    {'Opcode:':<25} 0b{opcode:<4} | {int(opcode, 2)}")
+    if isResponse:
+        print(f"    {'Authoritative:':<25} 0b{auth:<4} | {int(auth, 2)}")
+    print(f"    {'Truncated:':<25} 0b{trunc:<4} | {int(trunc, 2)}")
+    print(f"    {'Recursion Desired:':<25} 0b{rec_des:<4} | {int(rec_des, 2)}")
+    if isResponse:
+        print(f"    {'Recursion Available:':<25} 0b{rec_avail:<4} | {int(rec_avail, 2)}")
+    print(f"    {'Z:':<25} 0b{z:<4} | {int(z, 2)}")
+    if isResponse:
+        print(f"    {'Answer Authenticated:':<25} 0b{ans_auth:<4} | {int(ans_auth, 2)}")
+    print(f"    {'Non-Authenticated Data:':<25} 0b{non_auth:<4} | {int(non_auth, 2)}")
+    if isResponse:
+        print(f"    {'Reply Code:':<25} 0b{reply:<4} | {int(reply, 2)}")
 
 # helper func for ipv4 header flags
 def print_ipv4_flags(data):

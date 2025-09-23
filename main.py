@@ -24,6 +24,7 @@ def packet_callback(packet):
             print(f"\nCaptured Packet {packet_counter}:")
             raw_data = bytes(packet)
             hex_data = raw_data.hex()
+            print(f"  {'Hex Data:':<25} {hex_data}")
             ether_type, payload = parse_ethernet_header(hex_data)
 
             # Stop capturing if the limit is reached

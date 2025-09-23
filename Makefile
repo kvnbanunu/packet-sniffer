@@ -13,6 +13,9 @@ tcp:
 icmp:
 	$(RUN) icmp
 
+dns:
+	$(RUN) dns
+
 p-arp:
 	arping -c 1 $(IP)
 
@@ -25,3 +28,5 @@ p-tcp:
 p-icmp:
 	ping -c 1 $(IP)
 
+p-dns:
+	nslookup $(IP) -retry=10
