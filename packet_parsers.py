@@ -185,6 +185,7 @@ def parse_tcp_header(hex_data):
     urgent = hex_data[36:40]
 
     # calculate options
+    # tcp header is between 20 + upto 40 bytes of options / padding
     header_len = int(data_offset, 16) * 4
     options = hex_data[40:header_len*2]
 
@@ -200,10 +201,22 @@ def parse_tcp_header(hex_data):
     print_as_int(wind_sz, "Window Size:")
     print_as_int(checksum, "Checksum:")
     print_as_int(urgent, "Urgent Pointer:")
+    print_as_int(options, "Options:")
     print(f"  {'Payload (hex):':<25} {payload}")
 
 def parse_udp_header(hex_data):
-    return
+    source_port = hex_data[:4]
+    dest_port = hex_data[4:8]
+    length = hex_data[8:12]
+    checksum = hex_data[12:16]
+    payload = hex_data[16:]
+
+    print("UDP Header:")
+    print_as_int(source_port, "Source Port:")
+    print_as_int(dest_port, "Destination Port:")
+    print_as_int(length, "Length:")
+    print_as_int(checksum, "Checksum:")
+    print(f"  {'Payload (hex):':<25} {payload}")
 
 # helper func for ipv4 header flags
 def print_ipv4_flags(data):
