@@ -1,3 +1,5 @@
+from printers import *
+
 # Parse Ethernet header
 def parse_ethernet_header(hex_data):
     dest_mac = ':'.join(hex_data[i:i+2] for i in range(0, 12, 2))
@@ -47,10 +49,6 @@ def parse_arp_header(hex_data):
     print_ipv4_addr(sender_ip, "Sender IP:")
     print_mac_addr(target_mac, "Target MAC:")
     print_ipv4_addr(target_ip, "Target IP:")
-
-def print_as_int(data, label):
-    as_int = int(data, 16)
-    print(f"  {label:<25} {data:<20} | {as_int}")
 
 # Parse IPv4 header
 def parse_ipv4_header(hex_data):
@@ -122,7 +120,7 @@ def parse_ipv6_header(hex_data):
         case 58:
             parse_icmpv6_header(payload)
         case _:
-            print(f"  {'Payload (hex):':<25} {payload}")
+            print_payload(payload)
 
 def parse_ipv6_hop(data):
     next_header = data[:2]
@@ -148,7 +146,7 @@ def parse_ipv6_hop(data):
         case 58:
             parse_icmpv6_header(payload)
         case _:
-            print(f"  {'Payload (hex):':<25} {payload}")
+            print_payload(payload)
 
 def parse_ipv6_routing(data):
     next_header = data[:2]
@@ -178,118 +176,7 @@ def parse_ipv6_routing(data):
         case 58:
             parse_icmpv6_header(payload)
         case _:
-            print(f"  {'Payload (hex):':<25} {payload}")
-
-def parse_icmpv6_header(data):
-    type_val = data[:2]
-    code_val = data[2:4]
-    checksum = data[4:8]
-    reserved = data[8:12]
-    num_records = data[12:16]
-    records = data[16:]
-
-    print("ICMPv6 Header:")
-    print_as_int(type_val, "Type:")
-    print_as_int(code_val, "Code:")
-    print_as_int(checksum, "Checksum:")
-    print_as_int(reserved, "Reserved:")
-    print_as_int(num_records, "Number of Multicast Records:")
-
-    for i in range(int(num_records, 16)):
-        record_type = records[:2]
-        aux_len = records[2:4]
-        num_sources = records[4:8]
-        addr = records[8:40]
-
-        print(f"  Record {i + 1}:")
-        print_as_int(record_type, "  Record Type:")
-        print_as_int(aux_len, "  Aux Data Len:")
-        print_as_int(num_sources, "  Number of Sources:")
-        print_ipv6_addr(addr, "  Multicast Address:")
-        records = records[40:]
-
-
-def parse_icmp_header(hex_data):
-    type_val = int(hex_data[:2], 16)
-    code_val = int(hex_data[2:4], 16)
-    checksum = hex_data[4:8]
-    extended = hex_data[8:16]   #used to point out any issues in IP message
-    info = {
-        1: {
-            "t": "Echo reply",
-            "c": ["Echo reply"]
-        },
-        3: {
-            "t": "Destination unreachable",
-            "c": ["Destination network unreachable",
-                  "Destination host unreachable",
-                  "Destination protocol unreachable",
-                  "Destination port unreachable",
-                  "Fragmentation is needed and the DF flag set",
-                  "Source route failed"]
-        },
-        5: {
-            "t": "Redirect message",
-            "c": ["Redirect the datagram for the network",
-                  "Redirect datagram for the host",
-                  "Redirect the datagram for the Type of Service and Network",
-                  "Redirect datagram for the Service and Host"]
-        },
-        8: {
-            "t": "Echo request",
-            "c": ["Echo request"]
-        },
-        9: {
-            "t": "Router advertisement",
-            "c": ["User to discover the addresses of operational routers"]
-        },
-        10: {
-            "t": "Router solicitation",
-            "c": ["User to discover the addresses of operational routers"]
-        },
-        11: {
-            "t": "Time exceeded",
-            "c": ["Time to live exceeded in transit",
-                  "Fragment reassembly time exceeded"]
-        },
-        12: {
-            "t": "Parameter problem",
-            "c": ["The pointer indicated an error",
-                  "Missing required option",
-                  "Bad length"]
-        },
-        13: {
-            "t": "Timestamp",
-            "c": ["Used for time synchronization"]
-        },
-        14: {
-            "t": "Timestamp reply",
-            "c": ["Reply to Timestamp message"]
-        }
-    }
-
-    print(f"ICMP Header:")
-    print(f"  {'Type:':<25} {hex_data[:2]:<20} | {type_val} ({info[type_val]['t']})")
-    print(f"  {'Code:':<25} {hex_data[2:4]:<20} | {code_val} ({info[type_val]['c'][code_val]})")
-    print_as_int(checksum, "Checksum:")
-    if int(extended, 16) == 0:
-        print(f"  {'Unused:':<25} {extended:<20} | {bin(int(extended, 16))}")
-    else:
-        print_as_int(extended, "Extended Header:")
-    print(f"  {'Payload (hex):':<25} {hex_data[16:]}")
-
-def print_tcp_flags(data):
-    as_bin = f"{int(data, 16):0{12}b}" # keep leading 0s / 12 bits
-    res = as_bin[:3]
-    flags = as_bin[3:]
-    labels = ["Accurate ECN:", "Congestion Window Reduced:", "ECN-Echo:", "Urgent:",
-              "Acknowledgement:", "Push:", "Reset:", "Syn:", "Fin:"]
-
-    print(f"  {'Reserved:':<25} 0b{res:<18} | {int(res, 2)}")
-    print(f"  {'Flags':<25} 0b{flags:<18} | {int(flags, 2)}")
-    for i in range(9):
-        setflag = "Set" if flags[i] == "1" else "Not Set"
-        print(f"    {labels[i]:<30} {flags[i]} | {setflag}")
+            print_payload(payload)
 
 def parse_tcp_header(hex_data):
     source_port = hex_data[:4]
@@ -321,10 +208,10 @@ def parse_tcp_header(hex_data):
     print_as_int(urgent, "Urgent Pointer:")
     print_as_int(options, "Options:")
 
-    if int(source_port, 16) == 53:
+    if int(source_port, 16) == 53 or int(dest_port, 16) == 53:
         parse_dns_header(payload)
     else:
-        print(f"  {'Payload (hex):':<25} {payload}")
+        print_payload(payload)
 
 def parse_udp_header(hex_data):
     source_port = hex_data[:4]
@@ -339,7 +226,7 @@ def parse_udp_header(hex_data):
     print_as_int(length, "Length:")
     print_as_int(checksum, "Checksum:")
 
-    if int(source_port, 16) == 53:
+    if int(source_port, 16) == 53 or int(dest_port, 16) == 53:
         parse_dns_header(payload)
     else:
         print(f"  {'Payload (hex):':<25} {payload}")
@@ -369,140 +256,178 @@ def parse_dns_header(hex_data):
             data = hex_data[answers_index:]
             answers_index += print_dns_answers(data, qname)
 
-# helper function to parse the dns question.
-# Returns index for answers and qname for reuse
-def print_dns_questions(data):
-    index = 0
-    labels = []
+def parse_icmp_header(hex_data):
+    type_val = int(hex_data[:2], 16)
+    type_str = ""
+    code_val = int(hex_data[2:4], 16)
+    code_str = ""
+    checksum = hex_data[4:8]
+    extended = hex_data[8:16]   #used to point out any issues in IP message
+    payload = hex_data[16:]
+    info = {
+        1: {"t": "Echo reply", "c": [""]},
+        3: {
+            "t": "Destination unreachable",
+            "c": ["Destination network unreachable",
+                  "Destination host unreachable",
+                  "Destination protocol unreachable",
+                  "Destination port unreachable",
+                  "Fragmentation is needed and the DF flag set",
+                  "Source route failed"]
+        },
+        5: {
+            "t": "Redirect message",
+            "c": ["Redirect the datagram for the network",
+                  "Redirect datagram for the host",
+                  "Redirect the datagram for the Type of Service and Network",
+                  "Redirect datagram for the Service and Host"]
+        },
+        8: {"t": "Echo request", "c": [""]},
+        9: {"t": "Router advertisement", "c": [""]},
+        10: {"t": "Router solicitation", "c": [""]},
+        11: {
+            "t": "Time exceeded",
+            "c": ["Time to live exceeded in transit",
+                  "Fragment reassembly time exceeded"]
+        },
+        12: {
+            "t": "Parameter problem",
+            "c": ["The pointer indicated an error",
+                  "Missing required option",
+                  "Bad length"]
+        },
+        13: {"t": "Timestamp", "c": [""]},
+        14: {"t": "Timestamp reply", "c": [""]}
+    }
 
-    while data[index:index+2] != "00":
-        length = int(data[index:index+2], 16) * 2
-        index += 2
-        labels.append(bytes.fromhex(data[index:index+length]).decode('ascii'))
-        index += length
+    print(f"ICMP Header:")
 
-    qname = ".".join(labels) # add '.' inbetween each label
+    if type_val in info:
+        type_str = info[type_val]['t']
+        if code_val < len(info[type_val]['c']):
+            code_str = info[type_val]['c'][code_val]
+    print(f"  {'Type:':<25} {hex_data[:2]:<20} | {type_val} ({type_str})")
+    print(f"  {'Code:':<25} {hex_data[2:4]:<20} | {code_val} ({code_str})")
+    print_as_int(checksum, "Checksum:")
+    if int(extended, 16) == 0:
+        print(f"  {'Unused:':<25} {extended:<20} | {bin(int(extended, 16))}")
+    else:
+        print_as_int(extended, "Extended Header:")
+    print_payload(payload)
 
-    index += 2 # move past '00'
-    qtype = data[index:index+4]
-    index += 4
-    qclass = data[index:index+4]
-    index += 4
+def parse_icmpv6_header(data):
+    type_val = int(data[:2], 16)
+    type_str = ""
+    code_val = int(data[2:4], 16)
+    code_str = ""
+    checksum = data[4:8]
+    payload = data[8:]
+    info = {
+        1: {
+            "t": "Destination Unreachable",
+            "c": ["No route to destination",
+                  "Communication with destination administratively prohibited",
+                  "Beyond scope of source address",
+                  "Address unreachable",
+                  "Port unreachable",
+                  "Source address failed ingress/egress policy",
+                  "Reject route to destination",
+                  "Error in source routing header",
+                  "Headers too long",
+                  "Error in P-route"]
+        },
+        2: {"t": "Packet Too Big", "c": [""]},
+        3: {
+            "t": "Time Exceeded",
+            "c":["Hop limit exceeded in transit", "Fragment reassembly time exceeded"]
+        },
+        4: {
+            "t": "Parameter Problem",
+            "c": ["Erroneous header field encountered",
+                  "Unrecognized Next Header type encountered",
+                  "IPv6 First Fragment has incomplete IPv6 Header Chain",
+                  "SR Upper-layer Header Error",
+                  "Unrecognized Next Header type encountered by intermediate node",
+                  "Extension header too big",
+                  "Extension header chain too long",
+                  "Too many extension headers",
+                  "Too many options in extension header",
+                  "Option too big"]
+        },
+        128: {"t": "Echo Request", "c": [""]},
+        129: {"t": "Echo Reply", "c": [""]},
+        130: {"t": "Multicast Listener Query", "c": [""]},
+        131: {"t": "Multicast Listener Report", "c": [""]},
+        132: {"t": "Multicast Listener Done", "c": [""]},
+        133: {"t": "Router Solicitation", "c": [""]},
+        134: {"t": "Router Advertisement", "c": [""]},
+        135: {"t": "Neighbor Solicitation", "c": [""]},
+        136: {"t": "Neigbor Advertisement", "c": [""]},
+        137: {"t": "Redirect Message", "c": [""]},
+        138: {
+            "t": "Router Renumbering",
+            "c": ["Router Renumbering Command",
+                  "Router Renumbering Result"]
+        },
+        139: {
+            "t": "ICMP Node Information Query",
+            "c": ["The Data field contains an IPv6 address",
+                  "The Data field contains a name",
+                  "The Data field contains an IPv4 address"]
+        },
+        140: {
+            "t": "ICMP Node Information Response",
+            "c": ["A successful reply",
+                  "The Responder refuses to supply the answer",
+                  "The Qtype of the Query is unknown to the Responder"]
+        },
+        141: {"t": "Inverse Neighbor Discovery", "c": [""]},
+        142: {"t": "Inverse Neighbor Discovery", "c": [""]},
+        144: {"t": "Home Agent Address Discovery", "c": [""]},
+        145: {"t": "Home Agent Address Discovery", "c": [""]},
+        146: {"t": "Mobile Prefix Solicitation", "c": [""]},
+        147: {"t": "Mobile Prefix Advertisement", "c": [""]},
+        157: {
+            "t": "Duplicate Address Request Code Suffix",
+            "c": ["DAR message",
+                  "EDAR message with 64-bit ROVR field",
+                  "EDAR message with 128-bit ROVR field",
+                  "EDAR message with 192-bit ROVR field",
+                  "EDAR message with 256-bit ROVR field",
+                  "","","","","","","","","","",""] # Unassigned
+        },
+        158: {
+            "t": "Duplicate Address Confirmation Code Suffix",
+            "c": ["DAC message",
+                  "EDAC message with 64-bit ROVR field",
+                  "EDAC message with 128-bit ROVR field",
+                  "EDAC message with 192-bit ROVR field",
+                  "EDAC message with 256-bit ROVR field",
+                  "","","","","","","","","","",""] # Unassigned
+        },
+        160: {
+            "t": "Extended Echo Request",
+            "c": ["No Error"]
+        },
+        161: {
+            "t": "Extended Echo Reply",
+            "c": ["No Error",
+                  "Malformed Query",
+                  "No Such Interface",
+                  "No Such Table Entry",
+                  "Multiple Interfaces Satisfy Query"]
+        }
+    }
 
-    print(f"  {'Queries:':<25} {data[:index]}")
-    print(f"    {'Name:':<10} {qname}")
-    print(f"    {'Type:':<10} {qtype} | {int(qtype, 16)}")
-    print(f"    {'Class:':<10} {qclass} | {int(qclass, 16)}")
-    
-    return index, qname
+    print("ICMPv6 Header:")
 
-def print_dns_answers(data, name):
-    atype = data[4:8]
-    aclass = data[8:12]
-    ttl = data[12:20]
-    dlen = data[20:24]
-    index = 24 + (int(dlen, 16) * 2)
-    adata = data[24:index]
+    if type_val in info:
+        type_str = info[type_val]['t']
+        if code_val < len(info[type_val]['c']):
+            code_str = info[type_val]['c'][code_val]
+    print(f"  {'Type:':<25} {data[:2]:<20} | {type_val} ({type_str})")
+    print(f"  {'Code:':<25} {data[2:4]:<20} | {code_val} ({code_str})")
 
-    print(f"    {'Name:':<15} {name:<8}")
-    print(f"    {'Type:':<15} {atype:<8} | {int(atype, 16)}")
-    print(f"    {'Class:':<15} {aclass:<8} | {int(aclass, 16)}")
-    print(f"    {'Time To Live:':<15} {ttl:<8} | {int(ttl, 16)} seconds")
-    print(f"    {'Data Length:':<15} {dlen} | {int(dlen, 16)} bytes")
-    print(f"    {'Data (hex):':<15} {adata}")
+    print_as_int(checksum, "Checksum:")
+    print_payload(payload)
 
-    return index
-
-def print_dns_flags(data):
-    as_bin = f"{int(data, 16):0{16}b}" # keep leading 0s / 16 bits
-    res = as_bin[:1]
-    opcode = as_bin[1:5]
-    auth = as_bin[5:6]
-    trunc = as_bin[6:7]
-    rec_des = as_bin[7:8]
-    rec_avail = as_bin[8:9]
-    z = as_bin[9:10]
-    ans_auth = as_bin[10:11]
-    non_auth = as_bin[11:12]
-    reply = as_bin[12:16]
-
-    isResponse = int(res, 2) == 1
-
-    resStr = "Message is a Response" if isResponse else "Message is a Query"
-
-    print(f"  {'Flags:':<25} {data:<20} | 0b{as_bin}")
-    print(f"    {'Response:':<25} 0b{res:<4} | {int(res, 2)} ({resStr})")
-    print(f"    {'Opcode:':<25} 0b{opcode:<4} | {int(opcode, 2)}")
-    if isResponse:
-        print(f"    {'Authoritative:':<25} 0b{auth:<4} | {int(auth, 2)}")
-    print(f"    {'Truncated:':<25} 0b{trunc:<4} | {int(trunc, 2)}")
-    print(f"    {'Recursion Desired:':<25} 0b{rec_des:<4} | {int(rec_des, 2)}")
-    if isResponse:
-        print(f"    {'Recursion Available:':<25} 0b{rec_avail:<4} | {int(rec_avail, 2)}")
-    print(f"    {'Z:':<25} 0b{z:<4} | {int(z, 2)}")
-    if isResponse:
-        print(f"    {'Answer Authenticated:':<25} 0b{ans_auth:<4} | {int(ans_auth, 2)}")
-    print(f"    {'Non-Authenticated Data:':<25} 0b{non_auth:<4} | {int(non_auth, 2)}")
-    if isResponse:
-        print(f"    {'Reply Code:':<25} 0b{reply:<4} | {int(reply, 2)}")
-
-# helper func for ipv4 header flags
-def print_ipv4_flags(data):
-    as_bin = f"{int(data, 16):0{16}b}" # keep leading 0s / 16 bits
-    labels = ["Reserved:", "DF (Do not Fragment):", "MF (More Fragments):"]
-
-    print(f"  {'Flags & Frag Offset:':<25} {data:<20} | 0b{as_bin}")
-    for i in range(3):
-        print(f"    {labels[i]:<25} {as_bin[i]}")
-    print(f"    {'Fragment Offset:':<25} {hex(int(as_bin[3:], 2))} | {int(as_bin[3:], 2)}")
-
-# helper func for ipv4 header differential services
-def print_diff_services(data):
-    as_bin = f"{int(data, 16):0{8}b}" # keep leading zeros
-    codepoint = as_bin[:6] # first 6 digits
-    congestion = as_bin[6:] # last 2 digits
-
-    print(f"  {'Differentiated Services:':<25} {data:<20} | 0b{as_bin}")
-    print(f"    {'Differentiated Services Codepoint:':<25} 0b{codepoint} | {int(codepoint, 2)}")
-    print(f"    {'Explicit Congestion Notification:':<25} 0b{congestion} | {int(congestion, 2)}")
-
-# convert hex string into mac address format before printing
-def print_mac_addr(data, label):
-    res = ':'.join(data[i:i+2] for i in range(0, 12, 2))
-    print(f"  {label:<25} {data:<20} | {res}")
-
-# convert hex string into ipv4 address format 0.0.0.0 before printing
-def print_ipv4_addr(data, label):
-    res = f"{int(data[:2], 16)}"
-    for i in range(2, 8, 2):
-        res += f".{int(data[i:i+2], 16)}"
-    print(f"  {label:<25} {data:<20} | {res}")
-
-# convert hex string into ipv6 address format
-# ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
-# remove any leading zeros in each segment
-# unless 0000 -> 0
-# segments with only zeros replaced with double colon ::
-# double colon can only be used once
-def print_ipv6_addr(data, label):
-    res = data[:4].lstrip('0')  #strip leading zeros
-
-    double_colon = False #only set to true after returning to non 0 segment after 0 only segment
-    zero_flag = False   #true if last iteration was all 0s
-    for i in range(4, 32, 4):
-        temp = data[i:i+4]
-        if int(temp, 16) == 0:  #if all zeros
-            if double_colon == False:   #if first instance of ::
-                if zero_flag == True:
-                    continue    #skip adding more colons
-                zero_flag = True
-                res += "::"
-            else:
-                res += ":0"
-        else:
-            #check if previous segment was all 0s, then disable future ::
-            if double_colon == False and zero_flag == True:
-                double_colon = True
-            zero_flag = False
-            res += f":{temp.lstrip('0')}"
-    print(f"  {label:<25} {data:<20} | {res}")

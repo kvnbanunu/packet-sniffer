@@ -10,17 +10,26 @@ udp:
 tcp:
 	$(RUN) tcp
 
+udp6:
+	$(RUN) 'ip6 and udp'
+
+tcp6:
+	$(RUN) 'ip6 and tcp'
+
 icmp:
 	$(RUN) icmp
 
-icmpv6:
-	$(RUN) icmpv6
+icmp6:
+	$(RUN) icmp6
+
+ip6:
+	$(RUN) ip6
 
 dns:
-	$(RUN) dns
+	$(RUN) 'udp port 53 or tcp port 53'
 
 p-arp:
-	arping -c 1 $(IP)
+	sudo arping -c 1 $(IP)
 
 p-udp:
 	echo "Hello, World!" | ncat --udp 192.168.0.1 12345
@@ -31,7 +40,7 @@ p-tcp:
 p-icmp:
 	ping -c 1 $(IP)
 
-p-ipv6:
+p-ip6:
 	ping ff02::1%wlan0
 
 p-dns:
