@@ -64,6 +64,9 @@ def parse_ipv4_header(hex_data):
     source_ip = hex_data[24:32]
     dest_ip = hex_data[32:40]
 
+    last_ind = int(header_len, 16) * 8 # multiply by 4 bytes and 2 for length as hex digits
+    payload = hex_data[40:]
+
     print(f"IPv4 Header:")
     print_as_int(version, "Version:")
     print(f"  {'Header Length:':<25} {header_len:<20} | {int(header_len,16) * 4} bytes")
@@ -77,15 +80,21 @@ def parse_ipv4_header(hex_data):
     print_ipv4_addr(source_ip, "Source IP:")
     print_ipv4_addr(dest_ip, "Destination IP:")
 
+    if last_ind > 40: # meaning there are options
+        options = hex_data[40:last_ind]
+        payload = hex_data[last_ind:]
+        print_as_int(options, "Options/Padding:")
+
     match int(protocol, 16):
         case 1: #icmp
-            parse_icmp_header(hex_data[40:])
+            parse_icmp_header(payload)
         case 6: #tcp
-            parse_tcp_header(hex_data[40:])
+            parse_tcp_header(payload)
         case 17: #udp
-            parse_udp_header(hex_data[40:])
+            parse_udp_header(payload)
         case _:
-            print(f"  {'Unsupported Protocol:':<25} {protocol}")
+            print(f"  Unsupported/Unrecognized Protocol: {int(protocol, 16)}")
+            print_payload(payload)
 
 def parse_ipv6_header(hex_data):
     version = hex_data[0]
@@ -189,12 +198,10 @@ def parse_tcp_header(hex_data):
     checksum = hex_data[32:36]
     urgent = hex_data[36:40]
 
-    # calculate options
+    payload = hex_data[40:]
+
     # tcp header is between 20 + upto 40 bytes of options / padding
     header_len = int(data_offset, 16) * 4
-    options = hex_data[40:header_len*2]
-
-    payload = hex_data[header_len*2:]
 
     print("TCP Header:")
     print_as_int(source_port, "Source Port:")
@@ -206,7 +213,11 @@ def parse_tcp_header(hex_data):
     print_as_int(wind_sz, "Window Size:")
     print_as_int(checksum, "Checksum:")
     print_as_int(urgent, "Urgent Pointer:")
-    print_as_int(options, "Options:")
+
+    if header_len > 20: # meaning options exist
+        options = hex_data[40:header_len*2]
+        payload = hex_data[header_len*2:]
+        print_as_int(options, "Options:")
 
     if int(source_port, 16) == 53 or int(dest_port, 16) == 53:
         parse_dns_header(payload)
